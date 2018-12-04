@@ -1,0 +1,24 @@
+{
+  "name": "streamlinex",
+  "version": "1.0.0",
+  "description": "A framework for writing ETL jobs that don't care how they are run.",
+  "main": "aliases.js",
+  "dependencies": {
+    "ix": "^2.3.5",
+    "rxjs": "^6.3.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/merkenich/streamlinex.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/merkenich/streamlinex/issues"
+  },
+  "homepage": "https://github.com/merkenich/streamlinex#readme"
+}

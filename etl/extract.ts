@@ -1,4 +1,4 @@
-import { IWriteableChannel } from '../streamline/streamline';
+import { IWriteableChannel } from '../streamline/stream';
 
 export interface IExtractor<T> {
     (channel: IWriteableChannel<T>): void;

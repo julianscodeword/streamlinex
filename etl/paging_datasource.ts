@@ -1,4 +1,4 @@
-import { IDataSource } from './extract';
+// import { IDataSource } from './extract';
 
 // const source = new Simple();
 // const pagingSource = new PagingDataSource<number, number, number>(source, 0);
@@ -49,10 +49,10 @@ import { IDataSource } from './extract';
 //         private initialOffset: TOffset
 //     ) {}
 
-//     public get data(): AsyncIterable<TData> { return flatMap(this.getData()); }
-//     public get pagedData(): AsyncIterable<Array<TData>> { return this.getData(); }
+//     public get data(): Iterable<TData> { return flatMap(this.getData()); }
+//     public get pagedData(): Iterable<Array<TData>> { return this.getData(); }
 
-//     private async *getData(): AsyncIterable<Array<TData>> {
+//     private getData(): Iterable<Array<TData>> {
 //         var offset = this.initialOffset;
 
 //         while (true)

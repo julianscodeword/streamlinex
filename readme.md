@@ -1,19 +1,13 @@
 # StreamlineX
 A framework for writing ETL jobs that don't care how they are run.
 
-## Write once; run however or wherever
+## Write once; run wherever
 Write your ETL jobs without worrying about the details of how they are run. Spend more time capturing your ETL logic—plain and simple.
-
-### Streams and the StreamFactory
-`StreamFactory` is the powerful abstraction that allows you to write your ETL processes without worrying how they will be run.
-
-For now, the only available implementation is the `LocalStreamFactory`, which uses ReactiveX to run processes on your local machine but in the future look out for wrappers for Spark and other job processing frameworks.
 
 ## Getting started
 
 Get a new stream factory:
 ```typescript
-import { Streams } from 'streamlinex';
 const streamFactory = Streams.Local;
 ```
 
@@ -28,15 +22,21 @@ Modify the stream by defining your ETL process:
 const stream = streamFactory
 	.extract<number>(extractor)
 	.transform(x => 10 * x)
-    .load(loader);
+	.load(loader);
 ```
 
-Convert the stream into a runnable task, and wrap it in a job:
+Convert the stream into a runnable task:
 ```typescript
-const job = SimpleJob.For("Print out some extracted data.", stream.run, () => { /* do something else */});
+const job = SimpleJob.For("Print out some extracted data.", stream.run);
 ```
 
-And then run the job with one of the provided job runners:
+And then run the task with one of the provided job runners:
 ```typescript
-JobRunners.Parallel(job);
+JobRunners.Sequential(job);
 ```
+
+
+## Streams and the StreamFactory
+`StreamFactory` is the powerful abstraction that allows you to write your ETL processes without worrying how they will be run.
+
+For now, the only available implementation is the `LocalStreamFactory`, which uses ReactiveX to run processes on your local machine but in the future there will be wrappers for Spark and other job processing frameworks.

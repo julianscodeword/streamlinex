@@ -1,4 +1,4 @@
-import { IReadableChannel } from '../streamline/streamline';
+import { IReadableChannel } from '../streamline/stream';
 
 export interface ILoader<T> {
     (action: IReadableChannel<T>): void;
