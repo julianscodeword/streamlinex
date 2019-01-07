@@ -1,25 +1,16 @@
-﻿import { IExtractor } from "../etl/extract";
-import { ITransformer } from '../etl/transform';
-import { ILoader } from "../etl/load";
+﻿import { ITransformer } from '../etl/transform';
 import { Action, Runnable } from "../aliases";
-
-export interface IWriteableChannel<T> {
-    yield(...items: Array<T>): void;
-    yieldMany(items: Array<T>): void;
-}
-
-export interface IReadableChannel<T> {
-    forEach(action: Action<T>): void;
-    buffer(size: number): IReadableChannel<Array<T>>;
-}
+import { ILoader } from '../etl/data_target';
 
 export interface IStreamFactory {
-    extract<T>(extractor: IExtractor<T>): IStream<T>;
+    extract<T>(source: Iterable<T>): IStream<T>;
 }
 
 export interface IStream<T> {
     transform<TX>(transformer: ITransformer<T, TX>): IStream<TX>;
     oneToMany<TX>(transformer: ITransformer<T, Array<TX>>): IStream<TX>;
+    buffer(size: number): IStream<Array<T>>;
+    forEach(action: Action<T>): IStream<T>;
     load(loader: ILoader<T>): IStream<T>;
     run: Runnable;
 }

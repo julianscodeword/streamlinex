@@ -1,73 +1,76 @@
-// import { IDataSource } from './extract';
+import { IDataSource, IExtractor } from "./data_source";
+import { flatMap } from "../async";
 
-// const source = new Simple();
-// const pagingSource = new PagingDataSource<number, number, number>(source, 0);
-// const result = pagingSource.extract(10);
+export class PageSpec<TOffset> {
+    public constructor(
+        public offset: TOffset,
+        public size: number
+    ) {}
+}
 
-// export class PageSpecification<TSpec, TOffset> {
-//     public constructor(
-//         public data: TSpec,
-//         public offset: TOffset,
-//         public size: number
-//     ) {}
-// }
+export class PagingDataSource<TSpec, TOutput> implements IDataSource<TSpec, TOutput> {
+    public constructor(
+        private underlying: IDataSource<[TSpec, PageSpec<number>], TOutput>,
+        private initialOffset: number = 0,
+        private defaultPageSize: number = 1000,
+    ) {}
 
-// export class PagingDataSource<TSpec, TOutput, TOffset> implements IDataSource<TSpec, TOutput> {
-//     public constructor(
-//         private underlying: IDataSource<PageSpecification<TSpec, TOffset>, TOutput>,
-//         private initialOffset: TOffset,
-//         private defaultPageSize: number = 1000,
-//     ) {}
+    public extract(extraSpec: TSpec): Iterable<TOutput> {
+        const pager = new Pager<TOutput, number>((pageSpec) => {
+            const data = Array.from(this.underlying.extract([extraSpec, pageSpec]));
+            return new Page(data, Option.of<number>(pageSpec.offset + data.length));
+        }, this.initialOffset, this.defaultPageSize);
+        return pager.data;
+    }
+}
 
-//     public extract(specification: TSpec): AsyncIterable<TOutput> {
-//         const pager = new Pager<TOutput, TOffset>((offset, size) => {
-//             const data = collect(this.underlying.extract(new PageSpecification(specification, offset, size)));
-//             return transformAsync(data, d => new Page(d, null, null));
-//         }, this.defaultPageSize, this.initialOffset);
-//         return pager.data;
-//     }
-// }
+export class Option<T> {
+    public static of<V>(value: V): Option<V> { return new Option<V>(value, true); }
+    public static none<V>(): Option<V> { return new Option<V>(null, false); }
 
-// export class Page<TData, TOffset> {
-//     public constructor(
-//         public data: Array<TData>,
-//         public next: TOffset,
-//         public hasNext: boolean
-//     ) {}
+    constructor(public value: T, public hasValue: boolean) {}
+}
 
-//     public get hasData() { return this.data.length > 0; }
-// }
+export class Page<TData, TOffset> {
+    public constructor(
+        public data: Array<TData>,
+        public next: Option<TOffset>
+    ) {}
 
-// export interface IPageRetriever<TRecord, TOffset> {
-//     (offset: TOffset, size: number): Promise<Page<TRecord, TOffset>>;
-// }
+    public get hasData() { return this.size > 0; }
+    public get size() { return this.data.length; }
+}
 
-// export class Pager<TData, TOffset> {
-//     public constructor(
-//         private retriever: IPageRetriever<TData, TOffset>,
-//         private defaultPageSize: number,
-//         private initialOffset: TOffset
-//     ) {}
+export interface IPageRetriever<TRecord, TOffset> {
+    (pageSpec: PageSpec<TOffset>): Page<TRecord, TOffset>;
+}
 
-//     public get data(): Iterable<TData> { return flatMap(this.getData()); }
-//     public get pagedData(): Iterable<Array<TData>> { return this.getData(); }
+export class Pager<TData, TOffset> {
+    public constructor(
+        private retriever: IPageRetriever<TData, TOffset>,
+        private initialOffset: TOffset,
+        private pageSize: number = 1000
+    ) {}
 
-//     private getData(): Iterable<Array<TData>> {
-//         var offset = this.initialOffset;
+    public get data(): Iterable<TData> { return flatMap(this.getData(), x => x); }
+    public get pagedData(): Iterable<Array<TData>> { return this.getData(); }
 
-//         while (true)
-//         {
-//             var page = await this.retriever(offset, this.defaultPageSize);
+    private *getData(): Iterable<Array<TData>> {
+        var offset = this.initialOffset;
 
-//             if (!page.hasData)
-//                 return;
+        while (true)
+        {
+            var page = this.retriever(new PageSpec(offset, this.pageSize));
 
-//             yield page.data;
+            if (!page.hasData)
+                return;
 
-//             if (!page.hasNext)
-//                 return;
+            yield page.data;
 
-//             offset = page.next;
-//         }
-//     }
-// }
+            if (!page.next.hasValue)
+                return;
+
+            offset = page.next.value;
+        }
+    }
+}

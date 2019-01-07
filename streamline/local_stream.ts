@@ -1,91 +1,48 @@
-import { Observable, Subject } from 'rxjs';
-import { IStream, IReadableChannel, IStreamFactory, IWriteableChannel } from './stream';
-import { IExtractor } from '../etl/extract';
+import { Observable } from 'rxjs';
+import { IStream, IStreamFactory } from './stream';
 import { ITransformer } from '../etl/transform';
-import { ILoader } from '../etl/load';
 import { Action, Runnable } from '../aliases';
 import { bufferCount as bufferObservable, flatMap as flatmapObservable, map as mapObservable, publish as publishObservable } from 'rxjs/operators';
+import { from as observableFrom } from 'rxjs';
+import { ILoader } from '../etl/data_target';
 
 class LocalStreamFactory implements IStreamFactory {
 
-    public extract<T>(extractor: IExtractor<T>): IStream<T> {
-        const subject = new Subject<T>();
-        const connectableObservable = publishObservable<T>()(subject);
-        const channel = new LocalChannel<T>(subject, () => {
-            connectableObservable.connect();
-            extractor(channel);
-            subject.complete();
-        });
-        const stream = new LocalStream<T>(channel);
-
-        return stream;
-    }
-
-}
-
-class LocalReadableChannel<T> implements IReadableChannel<T> {
- 
-    public constructor(
-        private observable: Observable<T>,
-        public open: Runnable
-    ) {}
-
-    public map<TX>(transformer: ITransformer<T, TX>): LocalReadableChannel<TX> {
-        return new LocalReadableChannel<TX>(mapObservable<T, TX>(transformer)(this.observable), this.open);
-    }
-
-    public flatMap<TX>(transformer: ITransformer<T, Array<TX>>): LocalReadableChannel<TX> {
-        return new LocalReadableChannel<TX>(flatmapObservable<T, TX>(transformer)(this.observable), this.open);
-    }
-
-    public buffer(size: number): IReadableChannel<Array<T>> {
-        return new LocalReadableChannel<Array<T>>(bufferObservable<T>(size)(this.observable), this.open);
-    }
-
-    public forEach(action: Action<T>): void {
-        this.observable.forEach(action);
-    }
-
-}
-
-class LocalChannel<T> extends LocalReadableChannel<T> implements IWriteableChannel<T> {
-
-    public constructor(
-        private subject: Subject<T>,
-        _open: Runnable
-    ) {
-        super(subject, _open);
-    }
-
-    public yield(...items: Array<T>): void {
-        this.yieldMany(items);
-    }
-
-    public yieldMany(items: Array<T>): void {
-        const self = this;
-        items.forEach(item => self.subject.next(item));
+    public extract<T>(source: Iterable<T>): IStream<T> {
+        const observable = observableFrom(source);
+        const connObservable = publishObservable<T>()(observable);
+        return new LocalStream<T>(connObservable, () => connObservable.connect());
     }
 
 }
 
 class LocalStream<T> implements IStream<T> {
-
-    public constructor(private channel: LocalReadableChannel<T>) {}
+    public constructor(
+        private observable: Observable<T>,
+        public run: Runnable
+    ) {}
 
     public transform<TX>(transformer: ITransformer<T, TX>): IStream<TX> {
-        return new LocalStream<TX>(this.channel.map(transformer));
+        return new LocalStream<TX>(mapObservable<T, TX>(transformer)(this.observable), this.run);
     }
 
     public oneToMany<TX>(transformer: ITransformer<T, Array<TX>>): IStream<TX> {
-        return new LocalStream<TX>(this.channel.flatMap(transformer));
+        return new LocalStream<TX>(flatmapObservable<T, TX>(transformer)(this.observable), this.run);
+    }
+
+    public buffer(size: number): IStream<Array<T>> {
+        return new LocalStream<Array<T>>(bufferObservable<T>(size)(this.observable), this.run);
+    }
+
+    public forEach(action: Action<T>): IStream<T> {
+        this.observable.forEach(action);
+        return this;
     }
 
     public load(loader: ILoader<T>): IStream<T> {
-        loader(this.channel);
+        loader(this);
         return this;
     }
-    
-    public run: Runnable = this.channel.open;
 
 }
 

@@ -11,23 +11,17 @@ Get a new stream factory:
 const streamFactory = Streams.Local;
 ```
 
-Create custom data sources and data targets, or use the existing ones:
-```typescript
-const extractor = Extractors.Sequence(1, 10);
-const loader = Loaders.ConsoleLoggingLoader(5);
-```
-
 Modify the stream by defining your ETL process:
 ```typescript
 const stream = streamFactory
-	.extract<number>(extractor)
+	.extract<number>(Iterable.range(0, 10))
 	.transform(x => 10 * x)
-	.load(loader);
+	.forEach(console.log);
 ```
 
 Convert the stream into a runnable task:
 ```typescript
-const job = SimpleJob.For("Print out some extracted data.", stream.run);
+const job = Job.For("Print out some extracted data.", stream.run);
 ```
 
 And then run the task with one of the provided job runners:
@@ -35,6 +29,7 @@ And then run the task with one of the provided job runners:
 JobRunners.Sequential(job);
 ```
 
+You can also create custom data sources and data targets which generate or consume data for some specification.
 
 ## Streams and the StreamFactory
 `StreamFactory` is the powerful abstraction that allows you to write your ETL processes without worrying how they will be run.

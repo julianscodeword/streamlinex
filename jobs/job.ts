@@ -5,9 +5,9 @@ export interface IJob {
     tasks: Array<Runnable>;
 }
 
-export class SimpleJob implements IJob {
-    public static For(name: String, ...tasks: Array<Runnable>): SimpleJob {
-        return new SimpleJob(name, tasks);
+export class Job implements IJob {
+    public static For(name: String, ...tasks: Array<Runnable>): Job {
+        return new Job(name, tasks);
     }
 
     public constructor(
